@@ -108,7 +108,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         try {
             execute(sendMessage);
         } catch (TelegramApiException e) {
-
+            log.warn(e);
         }
     }
 
