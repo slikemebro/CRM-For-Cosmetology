@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class ClientService {
 
@@ -26,8 +28,11 @@ public class ClientService {
         }
     }
 
-    public Client findByNumber(String number){
+    public Client pickClientByNumber(String number){
         return clientRepository.findByNumber(number);
     }
 
+    public List<Client> findAll() {
+        return clientRepository.findAll();
+    }
 }

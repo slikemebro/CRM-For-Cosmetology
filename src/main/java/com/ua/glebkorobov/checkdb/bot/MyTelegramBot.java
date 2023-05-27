@@ -43,6 +43,8 @@ public class MyTelegramBot extends TelegramLongPollingBot {
 
     private Commands statusCommand;
 
+    private Client pickedClient;
+
     public MyTelegramBot(BotConfig botConfig) {
         this.botConfig = botConfig;
         List<BotCommand> listOfCommands = new ArrayList<>();
@@ -75,18 +77,28 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                         sendMessage(chatId, "For adding client write\nPattern: Phone, Name" +
                                 "\nor\n" +
                                 "Pattern: Phone, Name, Date of birthday(yyyy-mm-dd)");
-                        break;
+                        return;
                     }
                     case "/add_procedure": {
                         statusCommand = ADD_PROCEDURE;
                         sendMessage(chatId, "For adding procedure write\nPattern: Name, Price");
-                        break;
+                        return;
+                    }
+                    case "/pick_client": {
+                        statusCommand = PICK_CLIENT;
+                        List<Client> clients = clientService.findAll();
+                        sendMessage(chatId, "Choose the client");
+                        for (Client client : clients) {
+                            String dob = client.getDateOfBirthday() != null ?
+                                    client.getDateOfBirthday().toString() + "." : ".";
+                            sendMessage(chatId, "/" + client.getPhone() + " " + client.getName() + " " + dob);
+                        }
+                        return;
                     }
                     default: {
-                        break;
+                        log.info("Catch block default");
                     }
                 }
-                return;
             }
 
             if (statusCommand == ADD_CLIENT) {
@@ -104,6 +116,10 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 Procedures procedures = new Procedures(arr[0], Long.parseLong(arr[1].trim()));
                 sendMessage(chatId, procedureService.addProcedure(procedures));
                 statusCommand = NONE;
+            } else if (statusCommand == PICK_CLIENT) {
+                String number = message.substring(1);
+                pickedClient = clientService.pickClientByNumber(number);
+                sendMessage(chatId, "Picked " + pickedClient);
             }
         }
     }

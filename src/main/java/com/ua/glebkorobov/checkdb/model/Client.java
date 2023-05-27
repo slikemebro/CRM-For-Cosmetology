@@ -40,4 +40,11 @@ public class Client {
     public Client() {
 
     }
+
+    @Override
+    public String toString() {
+        return  " name " + name +
+                ", phone " + phone +
+                ", date of birthday " + (dateOfBirthday != null ? dateOfBirthday.toString() + "." : ".");
+    }
 }
