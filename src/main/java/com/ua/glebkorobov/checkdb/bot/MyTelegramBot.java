@@ -8,16 +8,21 @@ import com.ua.glebkorobov.checkdb.service.ClientService;
 import com.ua.glebkorobov.checkdb.service.ProcedureService;
 import com.ua.glebkorobov.checkdb.service.VisitProceduresService;
 import lombok.extern.log4j.Log4j2;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton.InlineKeyboardButtonBuilder;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.time.LocalDate;
@@ -119,7 +124,38 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             } else if (statusCommand == PICK_CLIENT) {
                 String number = message.substring(1);
                 pickedClient = clientService.pickClientByNumber(number);
-                sendMessage(chatId, "Picked " + pickedClient);
+
+                SendMessage pickClientMessage = new SendMessage(String.valueOf(chatId),
+                        "Picked " + pickedClient);
+
+                InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+                List<List<InlineKeyboardButton>> inlineButtons = new ArrayList<>();
+                List<InlineKeyboardButton> inlineKeyboardButtonList = new ArrayList<>();
+                InlineKeyboardButton inlineKeyboardButton1 = new InlineKeyboardButton();
+                InlineKeyboardButton inlineKeyboardButton2 = new InlineKeyboardButton();
+                inlineKeyboardButton1.setText("Edit client");
+                inlineKeyboardButton2.setText("null");
+                inlineKeyboardButton1.setCallbackData("edit_client");
+                inlineKeyboardButton2.setCallbackData("null");
+                inlineKeyboardButtonList.add(inlineKeyboardButton1);
+                inlineKeyboardButtonList.add(inlineKeyboardButton2);
+                inlineButtons.add(inlineKeyboardButtonList);
+                inlineKeyboardMarkup.setKeyboard(inlineButtons);
+                pickClientMessage.setReplyMarkup(inlineKeyboardMarkup);
+
+                try {
+                    execute(pickClientMessage);
+                } catch (TelegramApiException e) {
+                    log.warn(e);
+                }
+//                sendMessage(chatId, "Picked " + pickedClient);
+            }
+        } else if (update.hasCallbackQuery()) {
+            String callData = update.getCallbackQuery().getData();
+            long chatId = update.getCallbackQuery().getMessage().getChatId();
+
+            if (callData.equals("edit_client")){
+                sendMessage(chatId, callData);
             }
         }
     }
