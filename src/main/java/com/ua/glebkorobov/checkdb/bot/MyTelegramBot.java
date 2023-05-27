@@ -2,10 +2,9 @@ package com.ua.glebkorobov.checkdb.bot;
 
 import com.ua.glebkorobov.checkdb.config.BotConfig;
 import com.ua.glebkorobov.checkdb.model.Client;
-import com.ua.glebkorobov.checkdb.model.Procedures;
-import com.ua.glebkorobov.checkdb.repository.VisitProceduresRepository;
-import com.ua.glebkorobov.checkdb.service.ClientService;
 import com.ua.glebkorobov.checkdb.model.Commands;
+import com.ua.glebkorobov.checkdb.model.Procedures;
+import com.ua.glebkorobov.checkdb.service.ClientService;
 import com.ua.glebkorobov.checkdb.service.ProcedureService;
 import com.ua.glebkorobov.checkdb.service.VisitProceduresService;
 import lombok.extern.log4j.Log4j2;
@@ -21,6 +20,7 @@ import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,7 +30,6 @@ import static com.ua.glebkorobov.checkdb.model.Commands.*;
 @Component
 @Log4j2
 public class MyTelegramBot extends TelegramLongPollingBot {
-
     private final BotConfig botConfig;
 
     @Autowired
@@ -43,6 +42,8 @@ public class MyTelegramBot extends TelegramLongPollingBot {
     private VisitProceduresService visitProceduresService;
 
     private Commands statusCommand;
+
+    private Client pickedClient;
 
     public MyTelegramBot(BotConfig botConfig) {
         this.botConfig = botConfig;
@@ -58,9 +59,10 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         }
     }
 //TODO add visits
+
     /**
-     * @see Commands enams for switch statement
      * @param update Update received
+     * @see Commands enams for switch statement
      */
     @Override
     public void onUpdateReceived(Update update) {
@@ -72,24 +74,41 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 switch (message) {
                     case "/add_client": {
                         statusCommand = ADD_CLIENT;
-                        sendMessage(chatId, "For adding client write\nPattern: Phone, Name");
-                        break;
+                        sendMessage(chatId, "For adding client write\nPattern: Phone, Name" +
+                                "\nor\n" +
+                                "Pattern: Phone, Name, Date of birthday(yyyy-mm-dd)");
+                        return;
                     }
-                    case "/add_procedure":{
+                    case "/add_procedure": {
                         statusCommand = ADD_PROCEDURE;
                         sendMessage(chatId, "For adding procedure write\nPattern: Name, Price");
-                        break;
+                        return;
                     }
-                    default:{
-                        break;
+                    case "/pick_client": {
+                        statusCommand = PICK_CLIENT;
+                        List<Client> clients = clientService.findAll();
+                        sendMessage(chatId, "Choose the client");
+                        for (Client client : clients) {
+                            String dob = client.getDateOfBirthday() != null ?
+                                    client.getDateOfBirthday().toString() + "." : ".";
+                            sendMessage(chatId, "/" + client.getPhone() + " " + client.getName() + " " + dob);
+                        }
+                        return;
+                    }
+                    default: {
+                        log.info("Catch block default");
                     }
                 }
-                return;
             }
 
-            if (statusCommand == ADD_CLIENT){
+            if (statusCommand == ADD_CLIENT) {
                 String[] arr = message.split(",");
-                Client client = new Client(arr[0], arr[1]);
+                Client client = null;
+                if (arr.length == 2) {
+                    client = new Client(arr[0], arr[1]);
+                } else if (arr.length == 3) {
+                    client = new Client(arr[0], arr[1], LocalDate.parse(arr[2].trim()));
+                }
                 sendMessage(chatId, clientService.addClient(client));
                 statusCommand = NONE;
             } else if (statusCommand == ADD_PROCEDURE) {
@@ -97,6 +116,10 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 Procedures procedures = new Procedures(arr[0], Long.parseLong(arr[1].trim()));
                 sendMessage(chatId, procedureService.addProcedure(procedures));
                 statusCommand = NONE;
+            } else if (statusCommand == PICK_CLIENT) {
+                String number = message.substring(1);
+                pickedClient = clientService.pickClientByNumber(number);
+                sendMessage(chatId, "Picked " + pickedClient);
             }
         }
     }
