@@ -2,10 +2,9 @@ package com.ua.glebkorobov.checkdb.bot;
 
 import com.ua.glebkorobov.checkdb.config.BotConfig;
 import com.ua.glebkorobov.checkdb.model.Client;
-import com.ua.glebkorobov.checkdb.model.Procedures;
-import com.ua.glebkorobov.checkdb.repository.VisitProceduresRepository;
-import com.ua.glebkorobov.checkdb.service.ClientService;
 import com.ua.glebkorobov.checkdb.model.Commands;
+import com.ua.glebkorobov.checkdb.model.Procedures;
+import com.ua.glebkorobov.checkdb.service.ClientService;
 import com.ua.glebkorobov.checkdb.service.ProcedureService;
 import com.ua.glebkorobov.checkdb.service.VisitProceduresService;
 import lombok.extern.log4j.Log4j2;
@@ -21,6 +20,7 @@ import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,7 +30,6 @@ import static com.ua.glebkorobov.checkdb.model.Commands.*;
 @Component
 @Log4j2
 public class MyTelegramBot extends TelegramLongPollingBot {
-
     private final BotConfig botConfig;
 
     @Autowired
@@ -58,9 +57,10 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         }
     }
 //TODO add visits
+
     /**
-     * @see Commands enams for switch statement
      * @param update Update received
+     * @see Commands enams for switch statement
      */
     @Override
     public void onUpdateReceived(Update update) {
@@ -72,24 +72,31 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 switch (message) {
                     case "/add_client": {
                         statusCommand = ADD_CLIENT;
-                        sendMessage(chatId, "For adding client write\nPattern: Phone, Name");
+                        sendMessage(chatId, "For adding client write\nPattern: Phone, Name" +
+                                "\nor\n" +
+                                "Pattern: Phone, Name, Date of birthday(yyyy-mm-dd)");
                         break;
                     }
-                    case "/add_procedure":{
+                    case "/add_procedure": {
                         statusCommand = ADD_PROCEDURE;
                         sendMessage(chatId, "For adding procedure write\nPattern: Name, Price");
                         break;
                     }
-                    default:{
+                    default: {
                         break;
                     }
                 }
                 return;
             }
 
-            if (statusCommand == ADD_CLIENT){
+            if (statusCommand == ADD_CLIENT) {
                 String[] arr = message.split(",");
-                Client client = new Client(arr[0], arr[1]);
+                Client client = null;
+                if (arr.length == 2) {
+                    client = new Client(arr[0], arr[1]);
+                } else if (arr.length == 3) {
+                    client = new Client(arr[0], arr[1], LocalDate.parse(arr[2].trim()));
+                }
                 sendMessage(chatId, clientService.addClient(client));
                 statusCommand = NONE;
             } else if (statusCommand == ADD_PROCEDURE) {

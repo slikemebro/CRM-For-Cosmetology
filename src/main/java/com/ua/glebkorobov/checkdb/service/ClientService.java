@@ -16,6 +16,10 @@ public class ClientService {
     public String addClient(Client client) {
         try {
             clientRepository.save(client);
+            if (client.getDateOfBirthday() != null){
+                return "Client " + client.getName() + " with phone " + client.getPhone() +
+                         " and date of birthday " + client.getDateOfBirthday() + " added.";
+            }
             return "Client " + client.getName() + " with phone " + client.getPhone() + " added.";
         } catch (DataIntegrityViolationException ex) {
             return "Client with number " + client.getPhone() + " is exists";
